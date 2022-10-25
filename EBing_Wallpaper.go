@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"image"
@@ -12,17 +13,20 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/antonholmquist/jason"
 	"github.com/pborman/getopt/v2"
 )
 
 var (
-	Help, Verbose, Version, Skip, Keep, Quiet bool = false, false, false, false, false, false
-	Past                                      int  = 0
-	IDX                                       string
-	BingWallPaperUrl                          string
-	Title, Copyright, StartDate               string
+	Help, Verbose, Version      bool = false, false, false
+	Skip, Keep, Quiet           bool = false, false, false
+	Daemon                      bool = false
+	Past                        int  = 0
+	IDX                         string
+	BingWallPaperUrl            string
+	Title, Copyright, StartDate string
 )
 
 const (
@@ -102,6 +106,7 @@ func init() {
 	getopt.FlagLong(&Keep, "keep", 'k', "Keep the tmp files, do not discard them.")
 	getopt.FlagLong(&Past, "past", 'p', "is the previous [n] wallpaper from Bing. Max 7 days")
 	getopt.FlagLong(&Quiet, "quiet", 'q', "No output")
+	getopt.FlagLong(&Daemon, "daemon", 'd', "Run in the background every day at 09:00.")
 	getopt.Parse()
 	err := getopt.Getopt(nil)
 	if err != nil || Help {
@@ -128,6 +133,18 @@ func init() {
 	}
 }
 
+func waitUntil(ctx context.Context, until time.Time) {
+	timer := time.NewTimer(time.Until(until))
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return
+	case <-ctx.Done():
+		return
+	}
+}
+
 func main() {
 	var (
 		aspect      float32
@@ -135,6 +152,12 @@ func main() {
 		cmderr      error
 	)
 
+loop:
+	ctx := context.Background()
+	today := time.Now()
+	tomorrow := today.AddDate(0, 0, 1)
+	NextRun := fmt.Sprintf("%04d-%02d-%02dT09:00:00+02:00", tomorrow.Year(), tomorrow.Month(), tomorrow.Day())
+	until, _ := time.Parse(time.RFC3339, NextRun)
 	DeskTop := string(os.Getenv("DESKTOP"))
 	if DeskTop != "Enlightenment" && !Skip {
 		fmt.Printf("Your desktop is not Enlightenment, so this is not working.\n")
@@ -149,7 +172,8 @@ func main() {
 	}
 
 	DestDir := fmt.Sprintf("%v/.e/e/backgrounds", os.Getenv("HOME"))
-	TempDir := fmt.Sprintf("%v/Pictures/BingWallpapers", os.Getenv("HOME"))
+	TempDir := fmt.Sprintf("/tmp/%v/EBing_Wallpaper", os.Getenv("USER"))
+	//TempDir := fmt.Sprintf("%v/Pictures/BingWallpapers", os.Getenv("HOME"))
 	// Creating the directories if not exists
 	err := os.MkdirAll(DestDir, os.ModePerm)
 	if err != nil {
@@ -176,7 +200,7 @@ func main() {
 		Copyright = fmt.Sprintf("%v", WPCopyright)
 	}
 	ImageFile := fmt.Sprintf("%v/%v-%v.jpg", TempDir, StartDate, Title)
-	EdjeFile := fmt.Sprintf("%v/bing_wallpaper_%v.edc", DestDir, StartDate)
+	EdjeFile := fmt.Sprintf("%v/bing_wallpaper_%v.edc", TempDir, StartDate)
 
 	Xsize, Ysize := GetBingPicture(BingWallPaperUrl, ImageFile)
 	if (Xsize != 0) && (Ysize != 0) {
@@ -185,7 +209,7 @@ func main() {
 		aspect = 0.0
 	}
 
-	EFLTemplate := fmt.Sprintf("\nimages { image: \"%v\" USER; }\ncollections {\n  group {\n  name: \"e/desktop/background\";\n  data { item: \"style\" \"4\"; item: \"noanimation\" \"1\"; }\n  max: %v %v;\n  parts {\n    part {\n    name: \"bg\";\n    mouse_events: 0;\n    description {\n      state: \"default\" 0.0;\n      aspect: %.9f %.9f;\n      aspect_preference: NONE;\n      image { normal: \"%v\"; scale_hint: STATIC; }\n    }\n    }\n  }\n  }\n}\n", ImageFile, Xsize, Ysize, aspect, aspect, ImageFile)
+	EFLTemplate := fmt.Sprintf("\nimages { image: \"%v\" COMP; }\ncollections {\n  group {\n  name: \"e/desktop/background\";\n  data { item: \"style\" \"4\"; item: \"noanimation\" \"1\"; }\n  max: %v %v;\n  parts {\n    part {\n    name: \"bg\";\n    mouse_events: 0;\n    description {\n      state: \"default\" 0.0;\n      aspect: %.9f %.9f;\n      aspect_preference: NONE;\n      image { normal: \"%v\"; scale_hint: STATIC; }\n    }\n    }\n  }\n  }\n}\n", ImageFile, Xsize, Ysize, aspect, aspect, ImageFile)
 	err = os.WriteFile(EdjeFile, []byte(EFLTemplate), 0755)
 	if err != nil {
 		log.Fatalf("Unable to open file %v for writing\n", EdjeFile)
@@ -217,13 +241,23 @@ func main() {
 		}
 	}
 	if !Keep {
-		err := os.Remove(EdjeFile)
+		/*
+		 * Remove the edc file
+		 */
+		err := os.RemoveAll(TempDir)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = os.Remove(ImageFile)
-		if err != nil {
-			log.Fatal(err)
-		}
+		/*
+			 * Remove the ImageFile
+			err = os.Remove(ImageFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+		*/
+	}
+	if Daemon {
+		waitUntil(ctx, until)
+		goto loop
 	}
 }
