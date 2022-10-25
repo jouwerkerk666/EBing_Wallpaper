@@ -18,9 +18,7 @@ EBing_Wallpaper [-hkqsvV] [-p value]
 | -v    | --verbose | Verbose output                                            |
 | -V    | --version | Display version                                           |
 
-## Best practice
+## Crontab
 
-Use EBing_Wallpaper in a cronjob and execute EBing_Wallpaper -q every day at 07:00 CEST.
-
-
-
+You can't use EBing_Wallpaper in a cronjob yet.
+I will try to find a solution for this problem.
