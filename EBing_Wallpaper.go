@@ -248,13 +248,6 @@ loop:
 		if err != nil {
 			log.Fatal(err)
 		}
-		/*
-			 * Remove the ImageFile
-			err = os.Remove(ImageFile)
-			if err != nil {
-				log.Fatal(err)
-			}
-		*/
 	}
 	if Daemon {
 		waitUntil(ctx, until)
