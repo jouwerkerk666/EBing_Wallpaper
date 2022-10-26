@@ -106,6 +106,7 @@ func init() {
 	var (
 		err error
 	)
+
 	getopt.FlagLong(&Help, "help", 'h', "Display this help")
 	getopt.FlagLong(&Version, "version", 'V', "Display version")
 	getopt.FlagLong(&Verbose, "verbose", 'v', "Verbose output")
@@ -115,6 +116,7 @@ func init() {
 	getopt.FlagLong(&Quiet, "quiet", 'q', "No output")
 	getopt.FlagLong(&Daemon, "daemon", 'd', "Run in the background every day at 09:00.")
 	getopt.Parse()
+
 	err = getopt.Getopt(nil)
 	if err != nil || Help {
 		if !Help {
@@ -123,13 +125,12 @@ func init() {
 		getopt.Usage()
 		os.Exit(1)
 	}
-	if Daemon {
-		Skip = true
-	}
+
 	if Quiet && Verbose {
 		fmt.Println("Error, can not be Quiet and Verbose at the same time")
 		os.Exit(1)
 	}
+
 	if Past > 7 {
 		if !Quiet {
 			fmt.Println("The max for past is 7.")
