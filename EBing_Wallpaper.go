@@ -106,7 +106,6 @@ func init() {
 	var (
 		err error
 	)
-
 	getopt.FlagLong(&Help, "help", 'h', "Display this help")
 	getopt.FlagLong(&Version, "version", 'V', "Display version")
 	getopt.FlagLong(&Verbose, "verbose", 'v', "Verbose output")
@@ -116,7 +115,6 @@ func init() {
 	getopt.FlagLong(&Quiet, "quiet", 'q', "No output")
 	getopt.FlagLong(&Daemon, "daemon", 'd', "Run in the background every day at 09:00.")
 	getopt.Parse()
-
 	err = getopt.Getopt(nil)
 	if err != nil || Help {
 		if !Help {
