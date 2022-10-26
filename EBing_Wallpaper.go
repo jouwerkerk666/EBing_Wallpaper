@@ -17,6 +17,7 @@ import (
 
 	"github.com/antonholmquist/jason"
 	"github.com/pborman/getopt/v2"
+	"github.com/sevlyar/go-daemon"
 )
 
 var (
@@ -27,6 +28,9 @@ var (
 	IDX                         string
 	BingWallPaperUrl            string
 	Title, Copyright, StartDate string
+	PidFileDir                  string = fmt.Sprintf("/%v/.local/var/pid", os.Getenv("HOME"))
+	LogFileDir                  string = fmt.Sprintf("/%v/.local/var/log", os.Getenv("HOME"))
+	PidFile, LogFile            string
 )
 
 const (
@@ -99,6 +103,9 @@ func Shellout(command string) (string, string, error) {
 }
 
 func init() {
+	var (
+		err error
+	)
 	getopt.FlagLong(&Help, "help", 'h', "Display this help")
 	getopt.FlagLong(&Version, "version", 'V', "Display version")
 	getopt.FlagLong(&Verbose, "verbose", 'v', "Verbose output")
@@ -108,13 +115,16 @@ func init() {
 	getopt.FlagLong(&Quiet, "quiet", 'q', "No output")
 	getopt.FlagLong(&Daemon, "daemon", 'd', "Run in the background every day at 09:00.")
 	getopt.Parse()
-	err := getopt.Getopt(nil)
+	err = getopt.Getopt(nil)
 	if err != nil || Help {
 		if !Help {
 			fmt.Fprintln(os.Stderr, err)
 		}
 		getopt.Usage()
 		os.Exit(1)
+	}
+	if Daemon {
+		Skip = true
 	}
 	if Quiet && Verbose {
 		fmt.Println("Error, can not be Quiet and Verbose at the same time")
@@ -130,6 +140,14 @@ func init() {
 	if Version {
 		fmt.Printf("Version: %v\n", EBingVersion)
 		os.Exit(0)
+	}
+	err = os.MkdirAll(PidFileDir, os.ModePerm)
+	if err != nil {
+		log.Println(err)
+	}
+	err = os.MkdirAll(LogFileDir, os.ModePerm)
+	if err != nil {
+		log.Println(err)
 	}
 }
 
@@ -149,33 +167,57 @@ func main() {
 	var (
 		aspect      float32
 		out, errout string
-		cmderr      error
+		cmderr, err error
+		DeskTop     string
 	)
+	if Daemon {
+		PidFile = fmt.Sprintf("%v/EBing_Wallpaper.pid", PidFileDir)
+		LogFile = fmt.Sprintf("%v/EBing_Wallpaper.log", LogFileDir)
 
+		cntxt := &daemon.Context{
+			PidFileName: PidFile,
+			PidFilePerm: 0644,
+			LogFileName: LogFile,
+			LogFilePerm: 0640,
+			WorkDir:     fmt.Sprintf("%v/", os.Getenv("HOME")),
+			Umask:       027,
+			Args:        []string{"EBing_Wallpaper", "--skip", "--daemon"},
+		}
+
+		d, err := cntxt.Reborn()
+		if err != nil {
+			log.Fatal("Unable to run: ", err)
+		}
+		if d != nil {
+			return
+		}
+		defer cntxt.Release()
+		log.Println("- - - - - - - - - - - - - - -")
+		log.Println("EBing_Wallpaper started")
+	}
 loop:
 	ctx := context.Background()
 	today := time.Now()
 	tomorrow := today.AddDate(0, 0, 1)
 	NextRun := fmt.Sprintf("%04d-%02d-%02dT09:00:00+02:00", tomorrow.Year(), tomorrow.Month(), tomorrow.Day())
 	until, _ := time.Parse(time.RFC3339, NextRun)
-	DeskTop := string(os.Getenv("DESKTOP"))
+	log.Printf("NextRun: %v", NextRun)
 	if DeskTop != "Enlightenment" && !Skip {
-		fmt.Printf("Your desktop is not Enlightenment, so this is not working.\n")
+		log.Printf("Your desktop is not Enlightenment, so this is not working.\n")
 		os.Exit(1)
 	}
 
 	if !Quiet {
-		fmt.Printf("Change wallpaper in Enlightenment\n")
+		log.Printf("Change wallpaper in Enlightenment\n")
 	}
 	if Verbose {
-		fmt.Println("Verbose output")
+		log.Println("Verbose output")
 	}
 
 	DestDir := fmt.Sprintf("%v/.e/e/backgrounds", os.Getenv("HOME"))
 	TempDir := fmt.Sprintf("/tmp/%v/EBing_Wallpaper", os.Getenv("USER"))
-	//TempDir := fmt.Sprintf("%v/Pictures/BingWallpapers", os.Getenv("HOME"))
-	// Creating the directories if not exists
-	err := os.MkdirAll(DestDir, os.ModePerm)
+
+	err = os.MkdirAll(DestDir, os.ModePerm)
 	if err != nil {
 		log.Println(err)
 	}
