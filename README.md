@@ -10,6 +10,7 @@ EBing_Wallpaper [-hkqsvV] [-p value]
 
 | Short | Long      | Description                                               |
 | ----- | --------- | --------------------------------------------------------- |
+| -d    | --daemon  | Start in the background.                                  |
 | -h    | --help    | Display this help                                         |
 | -k    | --keep    | Keep the tmp files, do not delete them.                   |
 | -p    | --past    | is the previous [n] wallpaper from Bing. Max 7 days back. |
@@ -18,7 +19,8 @@ EBing_Wallpaper [-hkqsvV] [-p value]
 | -v    | --verbose | Verbose output                                            |
 | -V    | --version | Display version                                           |
 
-## Crontab
+## Daemon mode
 
-You can't use EBing_Wallpaper in a cronjob yet.
-I will try to find a solution for this problem.
+In daemon mode, it will get and set the background every day at 09:00 CEST.
+
+This time is not (yet) variable.
