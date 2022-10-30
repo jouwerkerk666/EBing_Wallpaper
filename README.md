@@ -1,6 +1,6 @@
 # EBing_Wallpaper
 
-This small tool, writen in go, will change the wallpaper to the Bing Wallpaper of the day.
+This small tool, written in go, will change the wallpaper to the Bing Wallpaper of the day.
 
 This is my first project written in go.
 
@@ -23,4 +23,12 @@ EBing_Wallpaper [-hkqsvV] [-p value]
 
 In daemon mode, it will get and set the background every day at 09:00 CEST.
 
-This time is not (yet) variable.
+
+
+## To Do
+
+1) Variable download time option.
+2) skip option is default with --daemon (-d)
+3) Options to stop/restart the daemon
+4) Option to force-download of new wallpaper.
+5) wish-list.....
