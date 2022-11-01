@@ -1,8 +1,8 @@
 # EBing_Wallpaper
 
-This small tool, written in go, will change the wallpaper to the Bing Wallpaper of the day.
+This small tool, written in go, will change the wallpaper to the Bing Wallpaper of the day in Enlightenment.
 
-This is my first project written in go.
+This is my first project written in go and is under heavy development. 
 
 ## Usage
 
