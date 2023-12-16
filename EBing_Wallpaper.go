@@ -34,7 +34,7 @@ var (
 )
 
 const (
-	EBingVersion = "1.0-1"
+	EBingVersion = "1.2-0"
 	ShellToUse   = "bash"
 )
 
@@ -200,6 +200,8 @@ loop:
 	tomorrow := today.AddDate(0, 0, 1)
 	NextRun := fmt.Sprintf("%04d-%02d-%02dT09:00:00+02:00", tomorrow.Year(), tomorrow.Month(), tomorrow.Day())
 	until, _ := time.Parse(time.RFC3339, NextRun)
+	DeskTop = os.Getenv("DESKTOP")
+
 	log.Printf("NextRun: %v", NextRun)
 	if DeskTop != "Enlightenment" && !Skip {
 		log.Printf("Your desktop is not Enlightenment, so this is not working.\n")
